@@ -25,7 +25,7 @@ const ReactDebugCurrentFrame = ReactSharedInternals.ReactDebugCurrentFrame;
 
 type LifeCyclePhase = 'render' | 'getChildContext';
 
-function describeFiber(fiber: Fiber): string {
+function describeFiber(fiber: Fiber): string { //获取fiber类型
   switch (fiber.tag) {
     case HostRoot:
     case HostPortal:
@@ -46,7 +46,7 @@ function describeFiber(fiber: Fiber): string {
   }
 }
 
-export function getStackByFiberInDevAndProd(workInProgress: Fiber): string {
+export function getStackByFiberInDevAndProd(workInProgress: Fiber): string { /* 获取fiber树 */
   let info = '';
   let node = workInProgress;
   do {
@@ -56,13 +56,13 @@ export function getStackByFiberInDevAndProd(workInProgress: Fiber): string {
   return info;
 }
 
-export let current: Fiber | null = null;
-export let phase: LifeCyclePhase | null = null;
+export let current: Fiber | null = null; /* 当前的Fiber树 */
+export let phase: LifeCyclePhase | null = null; /* 调度进度 */
 
-export function getCurrentFiberOwnerNameInDevOrNull(): string | null {
+export function getCurrentFiberOwnerNameInDevOrNull(): string | null { /* 在开发环境中获取当前Fiber对应的组件 */
   if (__DEV__) {
     if (current === null) {
-      return null;
+      return null; /* 在开发环境中，如果当前树为空，直接返回 */
     }
     const owner = current._debugOwner;
     if (owner !== null && typeof owner !== 'undefined') {
@@ -72,7 +72,7 @@ export function getCurrentFiberOwnerNameInDevOrNull(): string | null {
   return null;
 }
 
-export function getCurrentFiberStackInDev(): string {
+export function getCurrentFiberStackInDev(): string { /* 在开发环境中获取当前的fiber树，如果当前存在fiber树，则表明存在调度，可以获取当前fiber树 */
   if (__DEV__) {
     if (current === null) {
       return '';
@@ -84,7 +84,7 @@ export function getCurrentFiberStackInDev(): string {
   return '';
 }
 
-export function resetCurrentFiber() {
+export function resetCurrentFiber() { /* 清空当前调度状态 */
   if (__DEV__) {
     ReactDebugCurrentFrame.getCurrentStack = null;
     current = null;
@@ -92,7 +92,7 @@ export function resetCurrentFiber() {
   }
 }
 
-export function setCurrentFiber(fiber: Fiber) {
+export function setCurrentFiber(fiber: Fiber) { /* 获取当前fiber状态 */
   if (__DEV__) {
     ReactDebugCurrentFrame.getCurrentStack = getCurrentFiberStackInDev;
     current = fiber;
@@ -100,7 +100,7 @@ export function setCurrentFiber(fiber: Fiber) {
   }
 }
 
-export function setCurrentPhase(lifeCyclePhase: LifeCyclePhase | null) {
+export function setCurrentPhase(lifeCyclePhase: LifeCyclePhase | null) { /* 设置调度进度 */
   if (__DEV__) {
     phase = lifeCyclePhase;
   }

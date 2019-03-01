@@ -24,8 +24,8 @@ import {NoEffect} from 'shared/ReactSideEffectTags';
 import {
   IndeterminateComponent,
   ClassComponent,
-  HostRoot,
-  HostComponent,
+  HostRoot, /* 根节点 */
+  HostComponent, /* DOM节点 */
   HostText,
   HostPortal,
   ForwardRef,
@@ -80,6 +80,12 @@ if (__DEV__) {
     hasBadMapPolyfill = true;
   }
 }
+/**
+ * fiber是一种包含各种任务的数据结构，
+ * 这个架构可以跟踪，调度，终止，暂停这些任务。
+ * https://medium.com/react-in-depth/inside-fiber-in-depth-overview-of-the-new-reconciliation-algorithm-in-react-e1c04700ef6e
+ *
+ */
 
 // A Fiber is work on a Component that needs to be done or was done. There can
 // be more than one per component.

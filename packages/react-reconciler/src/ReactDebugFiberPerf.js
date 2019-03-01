@@ -48,27 +48,27 @@ const supportsUserTiming =
 
 // Keep track of current fiber so that we know the path to unwind on pause.
 // TODO: this looks the same as nextUnitOfWork in scheduler. Can we unify them?
-let currentFiber: Fiber | null = null;
+let currentFiber: Fiber | null = null; /* 当前fiber */
 // If we're in the middle of user code, which fiber and method is it?
 // Reusing `currentFiber` would be confusing for this because user code fiber
 // can change during commit phase too, but we don't need to unwind it (since
 // lifecycles in the commit phase don't resemble a tree).
-let currentPhase: MeasurementPhase | null = null;
+let currentPhase: MeasurementPhase | null = null; /* 当前组件状态 */
 let currentPhaseFiber: Fiber | null = null;
 // Did lifecycle hook schedule an update? This is often a performance problem,
 // so we will keep track of it, and include it in the report.
 // Track commits caused by cascading updates.
-let isCommitting: boolean = false;
-let hasScheduledUpdateInCurrentCommit: boolean = false;
-let hasScheduledUpdateInCurrentPhase: boolean = false;
-let commitCountInCurrentWorkLoop: number = 0;
+let isCommitting: boolean = false; /* 当前调度状态 */
+let hasScheduledUpdateInCurrentCommit: boolean = false; /* 在提交过程中是否有新的更新 */
+let hasScheduledUpdateInCurrentPhase: boolean = false; /* 在调度过程中是否有新的更新 */
+let commitCountInCurrentWorkLoop: number = 0; /* 当前进程中提交的个数 */
 let effectCountInCurrentCommit: number = 0;
 let isWaitingForCallback: boolean = false;
 // During commits, we only show a measurement once per method name
 // to avoid stretch the commit phase with measurement overhead.
-const labelsInCurrentCommit: Set<string> = new Set();
+const labelsInCurrentCommit: Set<string> = new Set(); /* 提交状态的性能监控 */
 
-const formatMarkName = (markName: string) => {
+const formatMarkName = (markName: string) => { /* 格式化标记名 */
   return `${reactEmoji} ${markName}`;
 };
 
@@ -78,15 +78,15 @@ const formatLabel = (label: string, warning: string | null) => {
   return `${prefix}${label}${suffix}`;
 };
 
-const beginMark = (markName: string) => {
+const beginMark = (markName: string) => { /* 开启标记 */
   performance.mark(formatMarkName(markName));
 };
 
-const clearMark = (markName: string) => {
+const clearMark = (markName: string) => { /* 清除标记 */
   performance.clearMarks(formatMarkName(markName));
 };
 
-const endMark = (label: string, markName: string, warning: string | null) => {
+const endMark = (label: string, markName: string, warning: string | null) => { /* 结束标记 */
   const formattedMarkName = formatMarkName(markName);
   const formattedLabel = formatLabel(label, warning);
   try {
@@ -163,7 +163,7 @@ const endFiberMark = (
   endMark(label, markName, warning);
 };
 
-const shouldIgnoreFiber = (fiber: Fiber): boolean => {
+const shouldIgnoreFiber = (fiber: Fiber): boolean => { /* 在时间线上是否显示宿主组件 */
   // Host components should be skipped in the timeline.
   // We could check typeof fiber.type, but does this work with RN?
   switch (fiber.tag) {
@@ -181,7 +181,7 @@ const shouldIgnoreFiber = (fiber: Fiber): boolean => {
   }
 };
 
-const clearPendingPhaseMeasurement = () => {
+const clearPendingPhaseMeasurement = () => { /* 清除仍在进行中的监控 */
   if (currentPhase !== null && currentPhaseFiber !== null) {
     clearFiberMark(currentPhaseFiber, currentPhase);
   }
@@ -190,7 +190,7 @@ const clearPendingPhaseMeasurement = () => {
   hasScheduledUpdateInCurrentPhase = false;
 };
 
-const pauseTimers = () => {
+const pauseTimers = () => { /* 终止活动的计时器 */
   // Stops all currently active measurements so that they can be resumed
   // if we continue in a later deferred loop from the same unit of work.
   let fiber = currentFiber;
@@ -202,7 +202,7 @@ const pauseTimers = () => {
   }
 };
 
-const resumeTimersRecursively = (fiber: Fiber) => {
+const resumeTimersRecursively = (fiber: Fiber) => { /* 递归恢复标记行为 */
   if (fiber.return !== null) {
     resumeTimersRecursively(fiber.return);
   }
@@ -211,7 +211,7 @@ const resumeTimersRecursively = (fiber: Fiber) => {
   }
 };
 
-const resumeTimers = () => {
+const resumeTimers = () => { /* 恢复标记行为 */
   // Resumes all measurements that were active during the last deferred loop.
   if (currentFiber !== null) {
     resumeTimersRecursively(currentFiber);
@@ -224,7 +224,7 @@ export function recordEffect(): void {
   }
 }
 
-export function recordScheduleUpdate(): void {
+export function recordScheduleUpdate(): void { /* 记录调度状态 */
   if (enableUserTimingAPI) {
     if (isCommitting) {
       hasScheduledUpdateInCurrentCommit = true;
@@ -248,7 +248,7 @@ export function startRequestCallbackTimer(): void {
   }
 }
 
-export function stopRequestCallbackTimer(
+export function stopRequestCallbackTimer( /* 终止回调计数器 */
   didExpire: boolean,
   expirationTime: number,
 ): void {

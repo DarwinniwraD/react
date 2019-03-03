@@ -159,7 +159,7 @@ export function reconcileChildren(
   nextChildren: any,
   renderExpirationTime: ExpirationTime,
 ) {
-  if (current === null) {
+  if (current === null) { /* 如果这是一个新组件，则直接监听所有的子fiber */
     // If this is a fresh new component that hasn't been rendered yet, we
     // won't update its child set by applying minimal side-effects. Instead,
     // we will add them all to the child before it gets rendered. That means
@@ -170,7 +170,7 @@ export function reconcileChildren(
       nextChildren,
       renderExpirationTime,
     );
-  } else {
+  } else { /* 如果当前子元素与正在工作的子组件一样，则拷贝一份当前的子元素 */
     // If the current child is the same as the work in progress, it means that
     // we haven't yet started any work on these children. Therefore, we use
     // the clone algorithm to create a copy of all the current children.
@@ -191,7 +191,7 @@ function forceUnmountCurrentAndReconcile(
   workInProgress: Fiber,
   nextChildren: any,
   renderExpirationTime: ExpirationTime,
-) {
+) { /* 强制删除当前所有的子元素，这个过程会将所有挂载和还未未挂载的子元素都置空，然后初始化 */
   // This function is fork of reconcileChildren. It's used in cases where we
   // want to reconcile without matching against the existing set. This has the
   // effect of all current children being unmounted; even if the type and key
@@ -224,7 +224,7 @@ function updateForwardRef(
   Component: any,
   nextProps: any,
   renderExpirationTime: ExpirationTime,
-) {
+) { /* 更新前置引用 */
   // TODO: current can be non-null here even if the component
   // hasn't yet mounted. This happens after the first render suspends.
   // We'll need to figure out if this is fine or can cause issues.
@@ -320,9 +320,9 @@ function updateMemoComponent(
   updateExpirationTime,
   renderExpirationTime: ExpirationTime,
 ): null | Fiber {
-  if (current === null) {
+  if (current === null) { /* 如果当前没有建立过fiber组件，则在事务中新建一个fiber */
     let type = Component.type;
-    if (
+    if ( /* 没有默认属性的函数性组件，只进行浅比较 */
       isSimpleFunctionComponent(type) &&
       Component.compare === null &&
       // SimpleMemoComponent codepath doesn't resolve outer props either.
@@ -452,12 +452,12 @@ function updateSimpleMemoComponent(
       // Inner propTypes will be validated in the function component path.
     }
   }
-  if (current !== null) {
+  if (current !== null) { /* 如果当前存在fiber则进行浅比较 */
     const prevProps = current.memoizedProps;
     if (
       shallowEqual(prevProps, nextProps) &&
       current.ref === workInProgress.ref
-    ) {
+    ) { /* 如果属性没有发生变化，而且更新时间没有超出设定的渲染时间则将它标记为已经完成的事务 */
       didReceiveUpdate = false;
       if (updateExpirationTime < renderExpirationTime) {
         return bailoutOnAlreadyFinishedWork(
@@ -481,7 +481,7 @@ function updateFragment(
   current: Fiber | null,
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
-) {
+) { /* 更新fragment */
   const nextChildren = workInProgress.pendingProps;
   reconcileChildren(
     current,
@@ -496,7 +496,7 @@ function updateMode(
   current: Fiber | null,
   workInProgress: Fiber,
   renderExpirationTime: ExpirationTime,
-) {
+) { /* 更新mode */
   const nextChildren = workInProgress.pendingProps.children;
   reconcileChildren(
     current,
@@ -526,12 +526,12 @@ function updateProfiler(
   return workInProgress.child;
 }
 
-function markRef(current: Fiber | null, workInProgress: Fiber) {
+function markRef(current: Fiber | null, workInProgress: Fiber) { /* 标记引用 */
   const ref = workInProgress.ref;
   if (
     (current === null && ref !== null) ||
     (current !== null && current.ref !== ref)
-  ) {
+  ) { /* 当前没有事务且存在引用元素，或者当前有事务正在处理，但处理的事务不是这个wip的事务，则安排这个引用任务 */
     // Schedule a Ref effect
     workInProgress.effectTag |= Ref;
   }
@@ -543,7 +543,7 @@ function updateFunctionComponent(
   Component,
   nextProps: any,
   renderExpirationTime,
-) {
+) { /* 更新函数组件 */
   if (__DEV__) {
     if (workInProgress.type !== workInProgress.elementType) {
       // Lazy component props can't be validated in createElement
@@ -561,8 +561,8 @@ function updateFunctionComponent(
     }
   }
 
-  const unmaskedContext = getUnmaskedContext(workInProgress, Component, true);
-  const context = getMaskedContext(workInProgress, unmaskedContext);
+  const unmaskedContext = getUnmaskedContext(workInProgress, Component, true); /* 获取上下文 */
+  const context = getMaskedContext(workInProgress, unmaskedContext); /* 获取已经标记过的上下文 */
 
   let nextChildren;
   prepareToReadContext(workInProgress, renderExpirationTime);
@@ -576,7 +576,7 @@ function updateFunctionComponent(
       nextProps,
       context,
       renderExpirationTime,
-    );
+    ); /* 下一个要进行的元素而 */
     if (
       debugRenderPhaseSideEffects ||
       (debugRenderPhaseSideEffectsForStrictMode &&
@@ -606,7 +606,7 @@ function updateFunctionComponent(
     );
   }
 
-  if (current !== null && !didReceiveUpdate) {
+  if (current !== null && !didReceiveUpdate) { /* 存在没有更新的组件 */
     bailoutHooks(current, workInProgress, renderExpirationTime);
     return bailoutOnAlreadyFinishedWork(
       current,
@@ -626,7 +626,7 @@ function updateFunctionComponent(
   return workInProgress.child;
 }
 
-function updateClassComponent(
+function updateClassComponent( /* 更新类组件 */
   current: Fiber | null,
   workInProgress: Fiber,
   Component: any,
@@ -653,7 +653,7 @@ function updateClassComponent(
   // Push context providers early to prevent context stack mismatches.
   // During mounting we don't know the child context yet as the instance doesn't exist.
   // We will invalidate the child context in finishClassComponent() right after rendering.
-  let hasContext;
+  let hasContext; /* 提前将上下文推入调用栈，防止丢失，渲染结束后在finishClassComponent方法中验证子元素的上下文 */
   if (isLegacyContextProvider(Component)) {
     hasContext = true;
     pushLegacyContextProvider(workInProgress);
@@ -662,10 +662,10 @@ function updateClassComponent(
   }
   prepareToReadContext(workInProgress, renderExpirationTime);
 
-  const instance = workInProgress.stateNode;
-  let shouldUpdate;
-  if (instance === null) {
-    if (current !== null) {
+  const instance = workInProgress.stateNode; /* 事务栈中的组件节点 */
+  let shouldUpdate; /* 是否需要更新 */
+  if (instance === null) { /* 没有组件实例 */
+    if (current !== null) { /* 在非连续的状态下但是存在没有实例化的组件 */
       // An class component without an instance only mounts if it suspended
       // inside a non- concurrent tree, in an inconsistent state. We want to
       // tree it like a new mount, even though an empty version of it already
@@ -676,20 +676,20 @@ function updateClassComponent(
       workInProgress.effectTag |= Placement;
     }
     // In the initial pass we might need to construct the instance.
-    constructClassInstance(
+    constructClassInstance( /* 构造组件实例 */
       workInProgress,
       Component,
       nextProps,
       renderExpirationTime,
     );
-    mountClassInstance(
+    mountClassInstance( /* 挂载实例 */
       workInProgress,
       Component,
       nextProps,
       renderExpirationTime,
     );
     shouldUpdate = true;
-  } else if (current === null) {
+  } else if (current === null) { /* 当前没有任何事务时，唤起更新， */
     // In a resume, we'll already have an instance we can reuse.
     shouldUpdate = resumeMountClassInstance(
       workInProgress,
@@ -713,7 +713,7 @@ function updateClassComponent(
     shouldUpdate,
     hasContext,
     renderExpirationTime,
-  );
+  ); /* 完成类组件更新状态，获取新的状态 */
   if (__DEV__) {
     let inst = workInProgress.stateNode;
     if (inst.props !== nextProps) {
@@ -738,13 +738,13 @@ function finishClassComponent(
   renderExpirationTime: ExpirationTime,
 ) {
   // Refs should update even if shouldComponentUpdate returns false
-  markRef(current, workInProgress);
+  markRef(current, workInProgress); /* 在事务列表中标记当前存在的引用 */
 
   const didCaptureError = (workInProgress.effectTag & DidCapture) !== NoEffect;
 
-  if (!shouldUpdate && !didCaptureError) {
+  if (!shouldUpdate && !didCaptureError) {/* 如果不需要更新，而且也没有异常情况，则将当前fiber从已渲染完的事务列表中去除 */
     // Context providers should defer to sCU for rendering
-    if (hasContext) {
+    if (hasContext) { /* 验证上下文 */
       invalidateContextProvider(workInProgress, Component, false);
     }
 
@@ -815,7 +815,7 @@ function finishClassComponent(
 
   // Memoize state using the values we just used to render.
   // TODO: Restructure so we never read values from the instance.
-  workInProgress.memoizedState = instance.state;
+  workInProgress.memoizedState = instance.state; /* 缓存用于渲染的属性值 */
 
   // The context might have changed so we need to recalculate it.
   if (hasContext) {

@@ -114,7 +114,7 @@ export type Fiber = {|
   type: any,
 
   // The local state associated with this fiber.
-  stateNode: any,
+  stateNode: any, /* 这个fiber相关的node节点 */
 
   // Conceptual aliases
   // parent : Instance -> return The parent happens to be the same as the
@@ -126,9 +126,9 @@ export type Fiber = {|
   // This is effectively the parent, but there can be multiple parents (two)
   // so this is only the parent of the thing we're currently processing.
   // It is conceptually the same as the return address of a stack frame.
-  return: Fiber | null,
+  return: Fiber | null, /* 下一个将要处理的fiber */
 
-  // Singly Linked List Tree Structure.
+  // Singly Linked List Tree Structure. /* 构建单一链表结构 */
   child: Fiber | null,
   sibling: Fiber | null,
   index: number,
@@ -139,16 +139,16 @@ export type Fiber = {|
 
   // Input is the data coming into process this fiber. Arguments. Props.
   pendingProps: any, // This type will be more specific once we overload the tag.
-  memoizedProps: any, // The props used to create the output.
+  memoizedProps: any, // The props used to create the output. /* 缓存将要渲染的内容 */
 
   // A queue of state updates and callbacks.
   updateQueue: UpdateQueue<any> | null,
 
   // The state used to create the output
-  memoizedState: any,
+  memoizedState: any, /* 缓存将要渲染的内容 */
 
   // A linked-list of contexts that this fiber depends on
-  contextDependencies: ContextDependencyList | null,
+  contextDependencies: ContextDependencyList | null, /* 该fiber依赖的上下文链表 */
 
   // Bitfield that describes properties about the fiber and its subtree. E.g.
   // the ConcurrentMode flag indicates whether the subtree should be async-by-
@@ -156,37 +156,37 @@ export type Fiber = {|
   // parent. Additional flags can be set at creation time, but after that the
   // value should remain unchanged throughout the fiber's lifetime, particularly
   // before its child fibers are created.
-  mode: TypeOfMode,
+  mode: TypeOfMode, /* fiber及其子树渲染模式，在创建时设定，中途不会改变 */
 
   // Effect
   effectTag: SideEffectTag,
 
   // Singly linked list fast path to the next fiber with side-effects.
-  nextEffect: Fiber | null,
+  nextEffect: Fiber | null, /* 有变化的下一个fiber链表 */
 
   // The first and last fiber with side-effect within this subtree. This allows
   // us to reuse a slice of the linked list when we reuse the work done within
   // this fiber.
-  firstEffect: Fiber | null,
-  lastEffect: Fiber | null,
+  firstEffect: Fiber | null, /* 用于缓存变化了的fiber中第一个元素，便于快速获取 */
+  lastEffect: Fiber | null, /* 同上 */
 
   // Represents a time in the future by which this work should be completed.
   // Does not include work found in its subtree.
-  expirationTime: ExpirationTime,
+  expirationTime: ExpirationTime, /* 事务运行的最后期限，不包括子树运行的时间 */
 
   // This is used to quickly determine if a subtree has no pending changes.
-  childExpirationTime: ExpirationTime,
+  childExpirationTime: ExpirationTime, /* 用于快速判断子树是否有变化 */
 
   // This is a pooled version of a Fiber. Every fiber that gets updated will
   // eventually have a pair. There are cases when we can clean up pairs to save
   // memory if we need to.
-  alternate: Fiber | null,
+  alternate: Fiber | null, /* fiber树缓存 */
 
   // Time spent rendering this Fiber and its descendants for the current update.
   // This tells us how well the tree makes use of sCU for memoization.
   // It is reset to 0 each time we render and only updated when we don't bailout.
   // This field is only set when the enableProfilerTimer flag is enabled.
-  actualDuration?: number,
+  actualDuration?: number, /* fiber及其子树的时间渲染耗时，只在侧写开启时才会用到，下同 */
 
   // If the Fiber is currently active in the "render" phase,
   // This marks the time at which the work began.
@@ -228,14 +228,14 @@ function FiberNode(
   key: null | string,
   mode: TypeOfMode,
 ) {
-  // Instance
+  // Instance/* 初始化一个fiber实例 */
   this.tag = tag;
   this.key = key;
   this.elementType = null;
   this.type = null;
   this.stateNode = null;
 
-  // Fiber
+  // Fiber/* 初始化一个fiber */
   this.return = null;
   this.child = null;
   this.sibling = null;
@@ -315,22 +315,22 @@ function FiberNode(
 //    is faster.
 // 5) It should be easy to port this to a C struct and keep a C implementation
 //    compatible.
-const createFiber = function(
-  tag: WorkTag,
-  pendingProps: mixed,
-  key: null | string,
-  mode: TypeOfMode,
+const createFiber = function( /* 用于创建fiber的构造函数 */
+  tag: WorkTag, /* 当前需要处理的标签，其可能值有根容器HostRoot， 片段Fragment， 侧写Profiler， Mode， SuspenseComponent， 文本（HostText）， DOM节点(HostComponent)， HostPortal， IndeterminateComponent */
+  pendingProps: mixed, /* 当前标签的属性 */
+  key: null | string, /* 当前标签的key值 */
+  mode: TypeOfMode, /* 当前标签的模式 */
 ): Fiber {
   // $FlowFixMe: the shapes are exact here but Flow doesn't like constructors
   return new FiberNode(tag, pendingProps, key, mode);
 };
 
-function shouldConstruct(Component: Function) {
+function shouldConstruct(Component: Function) { /* 是否需要构建一个fiber实例 */
   const prototype = Component.prototype;
   return !!(prototype && prototype.isReactComponent);
 }
 
-export function isSimpleFunctionComponent(type: any) {
+export function isSimpleFunctionComponent(type: any) { /* 区分函数组件与类组件 */
   return (
     typeof type === 'function' &&
     !shouldConstruct(type) &&
@@ -339,28 +339,28 @@ export function isSimpleFunctionComponent(type: any) {
 }
 
 export function resolveLazyComponentTag(Component: Function): WorkTag {
-  if (typeof Component === 'function') {
+  if (typeof Component === 'function') { /* 是否是一个组件 */
     return shouldConstruct(Component) ? ClassComponent : FunctionComponent;
   } else if (Component !== undefined && Component !== null) {
     const $$typeof = Component.$$typeof;
     if ($$typeof === REACT_FORWARD_REF_TYPE) {
-      return ForwardRef;
+      return ForwardRef; /* 前置引用 */
     }
     if ($$typeof === REACT_MEMO_TYPE) {
-      return MemoComponent;
+      return MemoComponent; /* 缓存组件 */
     }
   }
   return IndeterminateComponent;
 }
 
 // This is used to create an alternate fiber to do work on.
-export function createWorkInProgress(
+export function createWorkInProgress( /* 创建事务 */
   current: Fiber,
   pendingProps: any,
   expirationTime: ExpirationTime,
 ): Fiber {
   let workInProgress = current.alternate;
-  if (workInProgress === null) {
+  if (workInProgress === null) { /* 如果之前没有创建过缓存，则在事务中创建一个 */
     // We use a double buffering pooling technique because we know that we'll
     // only ever need at most two versions of a tree. We pool the "other" unused
     // node that we're free to reuse. This is lazily created to avoid allocating
@@ -372,22 +372,22 @@ export function createWorkInProgress(
       current.key,
       current.mode,
     );
-    workInProgress.elementType = current.elementType;
+    workInProgress.elementType = current.elementType;/* 新事务的elementType, type, stateNode继承当前元素的 */
     workInProgress.type = current.type;
     workInProgress.stateNode = current.stateNode;
 
     if (__DEV__) {
-      // DEV-only fields
+      // DEV-only fields /* 注册开发功能 */
       workInProgress._debugID = current._debugID;
       workInProgress._debugSource = current._debugSource;
       workInProgress._debugOwner = current._debugOwner;
       workInProgress._debugHookTypes = current._debugHookTypes;
     }
 
-    workInProgress.alternate = current;
-    current.alternate = workInProgress;
+    workInProgress.alternate = current; /* 更新事务元素的缓存 */
+    current.alternate = workInProgress; /* 更新当前元素的缓存 */
   } else {
-    workInProgress.pendingProps = pendingProps;
+    workInProgress.pendingProps = pendingProps; /* 如果已经设置过缓存则重置变化 */
 
     // We already have an alternate.
     // Reset the effect tag.
@@ -408,7 +408,7 @@ export function createWorkInProgress(
     }
   }
 
-  workInProgress.childExpirationTime = current.childExpirationTime;
+  workInProgress.childExpirationTime = current.childExpirationTime; /* 为事务设置其他属性 */
   workInProgress.expirationTime = current.expirationTime;
 
   workInProgress.child = current.child;
@@ -430,24 +430,24 @@ export function createWorkInProgress(
   return workInProgress;
 }
 
-export function createHostRootFiber(isConcurrent: boolean): Fiber {
+export function createHostRootFiber(isConcurrent: boolean): Fiber { /* 为标签创建根fiber */
   let mode = isConcurrent ? ConcurrentMode | StrictMode : NoContext;
 
-  if (enableProfilerTimer && isDevToolsPresent) {
+  if (enableProfilerTimer && isDevToolsPresent) {/* 如果开启开发工具，或开启侧写，则允许获取事务的耗时情况 */
     // Always collect profile timings when DevTools are present.
     // This enables DevTools to start capturing timing at any point–
     // Without some nodes in the tree having empty base times.
     mode |= ProfileMode;
   }
 
-  return createFiber(HostRoot, null, null, mode);
+  return createFiber(HostRoot, null, null, mode); /* 根fiber不存在属性，和key值 */
 }
 
-export function createFiberFromTypeAndProps(
-  type: any, // React$ElementType
+export function createFiberFromTypeAndProps(/* 根据类型和属性，为react元素创建fiber，为createFiberFromElement服务的工具性函数 */
+  type: any, // React$ElementType /* 元素类型 */
   key: null | string,
-  pendingProps: any,
-  owner: null | Fiber,
+  pendingProps: any, /* 元素属性 */
+  owner: null | Fiber, /* 上级fiber */
   mode: TypeOfMode,
   expirationTime: ExpirationTime,
 ): Fiber {
@@ -456,14 +456,14 @@ export function createFiberFromTypeAndProps(
   let fiberTag = IndeterminateComponent;
   // The resolved type is set if we know what the final type will be. I.e. it's not lazy.
   let resolvedType = type;
-  if (typeof type === 'function') {
+  if (typeof type === 'function') { /* 设置元素类型 */
     if (shouldConstruct(type)) {
-      fiberTag = ClassComponent;
+      fiberTag = ClassComponent; /* 类组件 */
     }
   } else if (typeof type === 'string') {
-    fiberTag = HostComponent;
+    fiberTag = HostComponent; /* 标签 */
   } else {
-    getTag: switch (type) {
+    getTag: switch (type) { /* 单独处理特殊的fiber */
       case REACT_FRAGMENT_TYPE:
         return createFiberFromFragment(
           pendingProps.children,
@@ -489,7 +489,7 @@ export function createFiberFromTypeAndProps(
         return createFiberFromProfiler(pendingProps, mode, expirationTime, key);
       case REACT_SUSPENSE_TYPE:
         return createFiberFromSuspense(pendingProps, mode, expirationTime, key);
-      default: {
+      default: { /* 处理一般的react元素，上下文，前置引用，缓存类型，懒类型 */
         if (typeof type === 'object' && type !== null) {
           switch (type.$$typeof) {
             case REACT_PROVIDER_TYPE:
@@ -505,7 +505,7 @@ export function createFiberFromTypeAndProps(
             case REACT_MEMO_TYPE:
               fiberTag = MemoComponent;
               break getTag;
-            case REACT_LAZY_TYPE:
+            case REACT_LAZY_TYPE: /* 懒类型的类型为空 */
               fiberTag = LazyComponent;
               resolvedType = null;
               break getTag;
@@ -541,7 +541,7 @@ export function createFiberFromTypeAndProps(
     }
   }
 
-  fiber = createFiber(fiberTag, pendingProps, key, mode);
+  fiber = createFiber(fiberTag, pendingProps, key, mode); /* 创建fiber */
   fiber.elementType = type;
   fiber.type = resolvedType;
   fiber.expirationTime = expirationTime;
@@ -549,7 +549,7 @@ export function createFiberFromTypeAndProps(
   return fiber;
 }
 
-export function createFiberFromElement(
+export function createFiberFromElement( /* 根据元素为react元素创建一个fiber */
   element: ReactElement,
   mode: TypeOfMode,
   expirationTime: ExpirationTime,
@@ -558,9 +558,9 @@ export function createFiberFromElement(
   if (__DEV__) {
     owner = element._owner;
   }
-  const type = element.type;
-  const key = element.key;
-  const pendingProps = element.props;
+  const type = element.type; /* 元素类型 */
+  const key = element.key; /* 元素key值 */
+  const pendingProps = element.props; /* 元素属性 */
   const fiber = createFiberFromTypeAndProps(
     type,
     key,
@@ -656,12 +656,12 @@ export function createFiberFromText(
   mode: TypeOfMode,
   expirationTime: ExpirationTime,
 ): Fiber {
-  const fiber = createFiber(HostText, content, null, mode);
+  const fiber = createFiber(HostText, content, null, mode); /* 文本fiber没有key值 */
   fiber.expirationTime = expirationTime;
   return fiber;
 }
 
-export function createFiberFromHostInstanceForDeletion(): Fiber {
+export function createFiberFromHostInstanceForDeletion(): Fiber { /* 为将要删除的元素创建fiber，标记为删除类型，属性，key值均为空 */
   const fiber = createFiber(HostComponent, null, null, NoContext);
   // TODO: These should not need a type.
   fiber.elementType = 'DELETED';
@@ -669,7 +669,7 @@ export function createFiberFromHostInstanceForDeletion(): Fiber {
   return fiber;
 }
 
-export function createFiberFromPortal(
+export function createFiberFromPortal( /* 便携组件创建fiber，其属性为其子元素或为空数组 */
   portal: ReactPortal,
   mode: TypeOfMode,
   expirationTime: ExpirationTime,
@@ -686,7 +686,7 @@ export function createFiberFromPortal(
 }
 
 // Used for stashing WIP properties to replay failed work in DEV.
-export function assignFiberPropertiesInDEV(
+export function assignFiberPropertiesInDEV( /* 在开发环境中为fiber设置属性 */
   target: Fiber | null,
   source: Fiber,
 ): Fiber {

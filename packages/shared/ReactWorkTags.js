@@ -30,9 +30,9 @@ export type WorkTag =
 
 export const FunctionComponent = 0;
 export const ClassComponent = 1;
-export const IndeterminateComponent = 2; // Before we know whether it is function or class
-export const HostRoot = 3; // Root of a host tree. Could be nested inside another node.
-export const HostPortal = 4; // A subtree. Could be an entry point to a different renderer.
+export const IndeterminateComponent = 2; // Before we know whether it is function or class 只知道它是一种函数或类组件的模糊类型组件
+export const HostRoot = 3; // Root of a host tree. Could be nested inside another node. 根树，可以相互嵌套
+export const HostPortal = 4; // A subtree. Could be an entry point to a different renderer. 一个子树，可能是不同渲染一个入口
 export const HostComponent = 5;
 export const HostText = 6;
 export const Fragment = 7;
